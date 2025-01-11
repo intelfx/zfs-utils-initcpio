@@ -1,0 +1,45 @@
+#!/usr/bin/awk -f
+
+# Returns a set of KEY=val assignments
+# - ZFS_ROOT_MODE: "dataset", "import", "import_all", "none"
+#   - all: import all pools, use the first one with a bootfs property
+#   - pool: import a specific pool, use bootfs to determine the dataset
+#   - dataset: import a specific pool, use a specific dataset
+#   - none: not using zfs for root
+# - ZFS_ROOT_POOL: contains the root pool name (used with mode "dataset" and "pool")
+# - ZFS_ROOT_DATASET: contains the root dataset name (used with mode "dataset")
+
+$0 =~ /^root=/ {
+	root = substr($0, 5)
+}
+
+END {
+	if (root == "zfs") {
+		# import all pools
+		zfs_root_mode = "all"
+	} else if (match(root, /^zfs:[^\/]+$/)) {
+		root = substr(root, 4)
+		# import a specific pool
+		zfs_root_mode = "pool"
+		zfs_root_pool = root
+	} else if (match(root, /^zfs:[^\/]+(\/[^\/]+)+$/)) {
+		root = substr(root, 4)
+		# use a particular dataset
+		zfs_root_mode = "dataset"
+		zfs_root_dataset = root
+		split(dataset, items, "/")
+		zfs_root_pool = items[1]
+	} else {
+		zfs_root_mode = "none"
+	}
+
+	printf "ZFS_ROOT_MODE=%s\n", zfs_root_mode
+	if (zfs_root_pool) {
+		printf "ZFS_ROOT_POOL=%s\n", zfs_root_pool
+	}
+	if (zfs_root_dataset) {
+		printf "ZFS_ROOT_DATASET=%s\n", zfs_root_dataset
+	}
+}
+
+# vim: ft=awk ts=8 noet:

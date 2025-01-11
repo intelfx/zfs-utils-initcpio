@@ -1,0 +1,31 @@
+#!/bin/bash
+
+build() {
+	local applet
+	# add parts of base hook:
+	# - busybox with applet symlinks
+	# - kmod with applet symlinks
+	# - blkid
+	add_binary /usr/lib/initcpio/busybox /usr/bin/busybox
+	for applet in $(/usr/lib/initcpio/busybox --list); do
+		add_symlink "/usr/bin/$applet" busybox
+	done
+
+	# ZFS binaries
+	map add_binary \
+		zpool \
+
+	# systemd-shutdown scripts
+	map add_file \
+		/usr/lib/systemd/system-shutdown/zfs \
+
+}
+
+help() {
+	cat <<HELPEOF
+This hook adds necessary ZFS binaries to the shutdown initramfs.
+In particular, zpool is added to export all pools before shutdown.
+HELPEOF
+}
+
+# vim: ft=bash ts=8 noet:
