@@ -7,12 +7,12 @@ build() {
 	# - busybox with applet symlinks
 	# - kmod with applet symlinks
 	# - blkid
-	add_binary /usr/lib/initcpio/busybox /bin/busybox
+	add_binary /usr/lib/initcpio/busybox /usr/bin/busybox
 	for applet in $(/usr/lib/initcpio/busybox --list); do
 		# do not add busybox symlinks over potentially real binaries
 		# (e.g. setfont added by sd-vconsole)
-		[[ -e "$BUILDROOT/bin/$applet" ]] || \
-			add_symlink "/bin/$applet" busybox
+		[[ -e "$BUILDROOT/usr/bin/$applet" ]] || \
+			add_symlink "/usr/bin/$applet" busybox
 	done
 	add_binary kmod
 	for applet in {dep,ins,rm,ls}mod mod{probe,info}; do
