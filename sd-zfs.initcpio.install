@@ -42,8 +42,8 @@ build() {
 
 	# Generator and support scripts
 	add_binary /usr/lib/zfs/initcpio/zfs-root-generator /usr/lib/systemd/system-generators/
-	add_binary /usr/lib/zfs/initcpio/zfs-set-env
 	add_binary /usr/lib/zfs/initcpio/zfs-parse-cmdline
+	add_binary /usr/lib/zfs/initcpio/zfs-prepare-rootfs
 
 	# ZFS-relevant configuration files
 	local copied_files=(
