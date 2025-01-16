@@ -23,7 +23,7 @@ elif [[ -n $JOURNAL_STREAM ]] \
 		echo "<${2:-"6"}>$1" >&2
 	}
 	setup_stderr() {
-		exec 2> >(xargs -d $'\n' -n1 printf "<7>%s\n")
+		exec 2> >(sed '/^<[0-9]>/b; s/^/<7>DEBUG: /' >&2)
 	}
 	log "${SCRIPT_NAME:?} started, logging to journal" 7
 else
@@ -31,7 +31,8 @@ else
 		echo "<${2:-"6"}>${SCRIPT_NAME:?}: $1" >/dev/kmsg
 	}
 	setup_stderr() {
-		exec 2> >(xargs -d $'\n' -n1 printf "<7>%s\n" >/dev/kmsg)
+		# exec 2> >(sed "/^<[0-9]>/b; s/^/<7>${SCRIPT_NAME}: DEBUG: /" | while IFS='' read -r line; do printf "%s\n" "$line"; done >/dev/kmsg)
+		exec 2> >(stdbuf -oL -eL sed "/^<[0-9]>/b; s/^/<7>${SCRIPT_NAME}: DEBUG: /" &>/dev/kmsg)
 	}
 	log "${SCRIPT_NAME:?} started, logging to kmsg" 7
 fi
