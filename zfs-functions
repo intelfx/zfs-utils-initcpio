@@ -6,17 +6,18 @@
 # functions - logging
 #
 
+log() {
+	echo "${SCRIPT_NAME:?}: $1" >&2
+}
 
 # usage: log "message" [level]
 if [[ -t 2 ]]; then
-	log() {
-		echo "${SCRIPT_NAME:?}: $1" >&2
-	}
+	:
 elif [[ -n $JOURNAL_STREAM ]] \
   && [[ -e /proc/self/fd/2 ]] \
   && [[ "$(stat -L -c "%d:%i" /proc/self/fd/2)" == "$JOURNAL_STREAM" ]]; then
 	log() {
-		echo "<${2:-"6"}>${SCRIPT_NAME:?}: $1" >&2
+		echo "<${2:-"6"}>$1" >&2
 	}
 else
 	log() {
