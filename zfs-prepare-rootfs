@@ -3,32 +3,10 @@
 
 set -eo pipefail
 
-
-#
-# functions
-#
-
-# usage: log "message" [level]
-if [[ -t 2 ]]; then
-	log() {
-		echo "zfs-prepare-rootfs: $1" >&2
-	}
-elif [[ -n $JOURNAL_STREAM ]] \
-  && [[ -e /proc/self/fd/2 ]] \
-  && [[ "$(stat -L -c "%d:%i" /proc/self/fd/2)" == "$JOURNAL_STREAM" ]]; then
-	log() {
-		echo "<${2:-"6"}>$1" >&2
-	}
-else
-	log() {
-		echo "<${2:-"6"}>zfs-prepare-rootfs: $1" >/dev/kmsg
-	}
-fi
-
-die() {
-	log "fatal: $1" "${2-"2"}"
-	exit 1
-}
+SCRIPT_NAME="zfs-prepare-rootfs"
+LIB_DIR="/usr/lib/zfs/initcpio"
+# shellcheck source=zfs-functions
+. "$LIB_DIR/zfs-functions"
 
 
 #

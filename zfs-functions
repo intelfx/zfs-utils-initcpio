@@ -1,0 +1,64 @@
+#!/hint/busybox sh
+# shellcheck shell=busybox disable=SC3003
+
+
+#
+# functions - logging
+#
+
+
+# usage: log "message" [level]
+if [[ -t 2 ]]; then
+	log() {
+		echo "${SCRIPT_NAME:?}: $1" >&2
+	}
+elif [[ -n $JOURNAL_STREAM ]] \
+  && [[ -e /proc/self/fd/2 ]] \
+  && [[ "$(stat -L -c "%d:%i" /proc/self/fd/2)" == "$JOURNAL_STREAM" ]]; then
+	log() {
+		echo "<${2:-"6"}>${SCRIPT_NAME:?}: $1" >&2
+	}
+else
+	log() {
+		echo "<${2:-"6"}>${SCRIPT_NAME:?}: $1" >/dev/kmsg
+	}
+fi
+
+die() {
+	log "fatal: $1" "${2-"2"}"
+	exit 1
+}
+
+
+#
+# functions - cmdline
+#
+
+if [[ ${DEBUG_CMDLINE+set} ]]; then
+	cat_cmdline() {
+		log "cmdline: $DEBUG_CMDLINE"
+		cat <<-EOF
+		$DEBUG_CMDLINE
+		EOF
+	}
+else
+	cat_cmdline() {
+		log "cmdline: $(cat /proc/cmdline)"
+		cat /proc/cmdline
+	}
+fi
+
+parse_cmdline() {
+	local vars v
+
+	# xargs(1) is used to perform word splitting with quoting
+	vars="$(cat_cmdline | xargs printf "%s\n" | "$LIB_DIR/zfs-parse-cmdline")"
+
+	local IFS=$'\n'
+	for v in $vars; do
+		log "cmdline(parsed): \$$v"
+		export "${v?}"
+	done
+}
+
+# vim: ft=sh ts=8 noet:

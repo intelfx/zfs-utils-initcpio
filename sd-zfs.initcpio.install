@@ -47,6 +47,7 @@ build() {
 	# Generator and support scripts
 	add_file /usr/lib/zfs/initcpio/zfs-root-generator /usr/lib/systemd/system-generators/
 	map add_file \
+		/usr/lib/zfs/initcpio/zfs-functions \
 		/usr/lib/zfs/initcpio/zfs-parse-cmdline \
 		/usr/lib/zfs/initcpio/zfs-prepare-rootfs \
 
