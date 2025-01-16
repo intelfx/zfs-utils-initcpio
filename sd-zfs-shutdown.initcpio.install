@@ -8,7 +8,10 @@ build() {
 	# - blkid
 	add_binary /usr/lib/initcpio/busybox /usr/bin/busybox
 	for applet in $(/usr/lib/initcpio/busybox --list); do
-		add_symlink "/usr/bin/$applet" busybox
+		# do not add busybox symlinks over potentially real binaries
+		# (e.g. setfont added by sd-vconsole)
+		[[ -e "$BUILDROOT/usr/bin/$applet" ]] || \
+			add_symlink "/usr/bin/$applet" busybox
 	done
 
 	# ZFS binaries

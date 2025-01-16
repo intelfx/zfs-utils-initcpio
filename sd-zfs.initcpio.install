@@ -9,10 +9,14 @@ build() {
 	# - blkid
 	add_binary /usr/lib/initcpio/busybox /bin/busybox
 	for applet in $(/usr/lib/initcpio/busybox --list); do
-		add_symlink "/bin/$applet" busybox
+		# do not add busybox symlinks over potentially real binaries
+		# (e.g. setfont added by sd-vconsole)
+		[[ -e "$BUILDROOT/bin/$applet" ]] || \
+			add_symlink "/bin/$applet" busybox
 	done
 	add_binary kmod
 	for applet in {dep,ins,rm,ls}mod mod{probe,info}; do
+		# these are the "real" things, no check is needed
 		add_symlink "/usr/bin/$applet" kmod
 	done
 	add_binary blkid
