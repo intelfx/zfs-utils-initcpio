@@ -13,6 +13,8 @@ LIB_DIR="/usr/lib/zfs/initcpio"
 # main
 #
 
+setup_debug
+
 case "${ZFS_ROOT_MODE?}" in
 all)
 	if dataset=$(zpool list -Ho bootfs | grep -m1 -vFx -); then

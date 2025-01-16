@@ -1,5 +1,5 @@
 #!/hint/busybox sh
-# shellcheck shell=busybox disable=SC3003
+# shellcheck shell=busybox disable=SC3003,SC3001
 
 
 #
@@ -8,6 +8,9 @@
 
 log() {
 	echo "${SCRIPT_NAME:?}: $1" >&2
+}
+setup_stderr() {
+	:
 }
 
 # usage: log "message" [level]
@@ -19,10 +22,16 @@ elif [[ -n $JOURNAL_STREAM ]] \
 	log() {
 		echo "<${2:-"6"}>$1" >&2
 	}
+	setup_stderr() {
+		exec 2> >(xargs -d $'\n' -n1 printf "<7>%s\n")
+	}
 	log "${SCRIPT_NAME:?} started, logging to journal" 7
 else
 	log() {
 		echo "<${2:-"6"}>${SCRIPT_NAME:?}: $1" >/dev/kmsg
+	}
+	setup_stderr() {
+		exec 2> >(xargs -d $'\n' -n1 printf "<7>%s\n" >/dev/kmsg)
 	}
 	log "${SCRIPT_NAME:?} started, logging to kmsg" 7
 fi
@@ -30,6 +39,13 @@ fi
 die() {
 	log "fatal: $1" "${2-"2"}"
 	exit 1
+}
+
+setup_debug() {
+	if [[ ${ZFS_ROOT_DEBUG+set} ]] || grep -q -Ew 'zfsroot.debug' /proc/cmdline; then
+		setup_stderr
+		set -x
+	fi
 }
 
 

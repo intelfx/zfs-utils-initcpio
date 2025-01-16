@@ -122,6 +122,8 @@ PassEnvironment=ZFS_ROOT_POOL
 # main
 #
 
+setup_debug
+
 GENERATOR_DIR="$1"
 if ! [[ "$GENERATOR_DIR" && -d "$GENERATOR_DIR" ]]; then
 	die "invalid generator directory \"$GENERATOR_DIR\""
