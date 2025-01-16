@@ -45,8 +45,8 @@ build() {
 		/usr/lib/udev/zvol_id \
 
 	# Generator and support scripts
-	add_binary /usr/lib/zfs/initcpio/zfs-root-generator /usr/lib/systemd/system-generators/
-	map add_binary \
+	add_file /usr/lib/zfs/initcpio/zfs-root-generator /usr/lib/systemd/system-generators/
+	map add_file \
 		/usr/lib/zfs/initcpio/zfs-parse-cmdline \
 		/usr/lib/zfs/initcpio/zfs-prepare-rootfs \
 

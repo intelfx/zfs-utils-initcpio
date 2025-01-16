@@ -19,7 +19,7 @@ build() {
 		zpool \
 
 	# systemd-shutdown scripts
-	map add_binary \
+	map add_file \
 		/usr/lib/systemd/system-shutdown/zfs \
 
 }
