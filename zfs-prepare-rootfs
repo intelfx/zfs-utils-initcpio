@@ -15,10 +15,17 @@ LIB_DIR="/usr/lib/zfs/initcpio"
 
 setup_debug
 
+if vars_present; then
+	load_vars
+else
+	parse_cmdline
+fi
+
 case "${ZFS_ROOT_MODE?}" in
 all)
 	if dataset=$(zpool list -Ho bootfs | grep -m1 -vFx -); then
-		:
+		ZFS_ROOT_POOL="${dataset%%/*}"
+		ZFS_ROOT_DATASET="$dataset"
 	else
 		die "no pool with bootfs property found"
 	fi
@@ -28,15 +35,15 @@ pool)
 	[[ ${ZFS_ROOT_POOL+set} ]] || die "internal: \$ZFS_ROOT_POOL not set"
 
 	if dataset=$(zpool list -Ho bootfs "$ZFS_ROOT_POOL" | grep -m1 -vFx -); then
-		:
+		ZFS_ROOT_DATASET="$dataset"
 	else
 		die "no bootfs property found for pool \"$ZFS_ROOT_POOL\""
 	fi
 	;;
 
 dataset)
+	[[ ${ZFS_ROOT_POOL+set} ]] || die "internal: \$ZFS_ROOT_POOL not set"
 	[[ ${ZFS_ROOT_DATASET+set} ]] || die "internal: \$ZFS_ROOT_DATASET not set"
-	exit 0
 	;;
 
 *)
@@ -44,7 +51,9 @@ dataset)
 	;;
 esac
 
-log "resolved: \$ZFS_ROOT_DATASET=$dataset"
-exec systemctl set-environment ZFS_ROOT_DATASET="$dataset"
+dump_vars
+
+log "done"
+exit 0
 
 # vim: ft=sh ts=8 noet:

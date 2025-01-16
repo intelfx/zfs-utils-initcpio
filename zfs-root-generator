@@ -73,7 +73,6 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none -a
 
 		pool|dataset) import_cmds="\
 ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
-PassEnvironment=ZFS_ROOT_POOL
 " ;;
 
 		*) die "invalid \$ZFS_ROOT_MODE=\"$ZFS_ROOT_MODE\"" ;;
@@ -95,6 +94,7 @@ PassEnvironment=ZFS_ROOT_POOL
 	Type=oneshot
 	RemainAfterExit=yes
 	EnvironmentFile=-/etc/default/zfs
+	EnvironmentFile=-${STATE_FILE}
 	${import_cmds}
 	EOF
 
@@ -112,11 +112,11 @@ write_mount_unit() {
 	# install -Dm644 /dev/stdin "$GENERATOR_DIR/sysroot.mount.d/zfs-override.conf"
 	write_unit sysroot.mount <<-EOF
 	[Mount]
-	PassEnvironment=ZFS_ROOT_DATASET
 	Type=zfs
 	What=\${ZFS_ROOT_DATASET}
 	Where=/sysroot
 	Options=zfsutil
+	EnvironmentFile=${STATE_FILE}
 	EOF
 
 	# TODO: other mount units from descendant datasets, if the pool has been
@@ -135,7 +135,11 @@ if ! [[ "$GENERATOR_DIR" && -d "$GENERATOR_DIR" ]]; then
 	die "invalid generator directory \"$GENERATOR_DIR\""
 fi
 
-parse_cmdline
+if vars_present; then
+	load_vars
+else
+	parse_cmdline
+fi
 
 case "${ZFS_ROOT_MODE?}" in
 all|pool|dataset) ;;
@@ -146,6 +150,7 @@ esac
 write_common_units
 write_import_unit
 write_mount_unit
+dump_vars
 
 log "done"
 exit 0

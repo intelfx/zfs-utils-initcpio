@@ -1,6 +1,15 @@
 #!/hint/busybox sh
 # shellcheck shell=busybox disable=SC3003,SC3001
 
+set -eo pipefail
+
+#
+# constants
+#
+
+LIB_DIR="/usr/lib/zfs/initcpio"
+STATE_DIR="/run/zfs/initcpio"
+STATE_FILE="$STATE_DIR/state"
 
 #
 # functions - logging
@@ -79,6 +88,34 @@ parse_cmdline() {
 		log "cmdline(parsed): \$$v"
 		export "${v?}"
 	done
+}
+
+vars_present() {
+	[[ -e "$STATE_FILE" ]]
+}
+
+dump_vars() {
+	local vars k v
+
+	# XXX: multi-line variables wtll break this
+	vars="$(set | grep -Eo '^ZFS_ROOT_[^=]*')"
+
+	install -dm700 "${STATE_FILE%/*}"
+	local IFS=$'\n'
+	for k in $vars; do
+		if eval "[[ \${$k+set} ]]"; then
+			v="$(eval "printf '%s' \"\$$k\"")"
+			log "writing: \$$k=$v"
+			printf "%s=%s\n" "$k" "$v"
+		fi
+	done >"$STATE_FILE"
+}
+
+load_vars() {
+	while IFS='' read -r line; do
+		log "env(read): \$$line"
+		export "${line?}"
+	done <"$STATE_FILE"
 }
 
 # vim: ft=sh ts=8 noet:
