@@ -2,6 +2,5 @@
 
 set -x
 zpool export -a
-sleep 30
 
 # vim: ft=sh ts=8 noet:
