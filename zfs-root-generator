@@ -42,15 +42,6 @@ write_unit() {
 }
 
 write_common_units() {
-	# install -Dm644 /dev/stdin "$GENERATOR_DIR/sysroot.mount.d/zfs-override.conf"
-	write_unit sysroot.mount <<-EOF
-	[Mount]
-	PassEnvironment=ZFS_ROOT_DATASET
-	Type=zfs
-	What=\${ZFS_ROOT_DATASET}
-	Options=zfsutil
-	EOF
-
 	write_unit zfs-initrd-prepare.service <<-EOF
 	[Unit]
 	Description=Prepare to mount ZFS rootfs
@@ -77,7 +68,7 @@ write_import_unit() {
 
 	case "${ZFS_ROOT_MODE?}" in
 		all) import_cmds="\
-ExecStart=/usr/bin/zpool import -aN -o cachefile=none
+ExecStart=/usr/bin/zpool import -N -o cachefile=none -a
 " ;;
 
 		pool|dataset) import_cmds="\
@@ -117,6 +108,20 @@ PassEnvironment=ZFS_ROOT_POOL
 	enable_unit zfs-initrd-import.target initrd-root-device.target
 }
 
+write_mount_unit() {
+	# install -Dm644 /dev/stdin "$GENERATOR_DIR/sysroot.mount.d/zfs-override.conf"
+	write_unit sysroot.mount <<-EOF
+	[Mount]
+	PassEnvironment=ZFS_ROOT_DATASET
+	Type=zfs
+	What=\${ZFS_ROOT_DATASET}
+	Options=zfsutil
+	EOF
+
+	# TODO: other mount units from descendant datasets, if the pool has been
+	# imported and parsed (i.e. if this is a rerun a la systemd-parse-etc)
+}
+
 
 #
 # main
@@ -139,6 +144,7 @@ esac
 
 write_common_units
 write_import_unit
+write_mount_unit
 
 log "done"
 exit 0
