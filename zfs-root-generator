@@ -126,7 +126,7 @@ write_common_units() {
 write_import_unit() {
 	local import_cmds
 
-	case "${ZFS_ROOT_MODE:?}" in
+	case "${ZFS_ROOT_MODE?}" in
 		all) import_cmds="\
 ExecStart=/usr/bin/zpool import -aN -o cachefile=none
 " ;;
@@ -141,7 +141,7 @@ PassEnvironment=ZFS_ROOT_POOL
 
 	write_unit zfs-initrd-import-scan.service <<-EOF
 	[Unit]
-	Description=Import ZFS pool(s) for rootfs by device scanning
+	Description=Import ZFS rootfs pool(s) by device scanning
 	Documentation=man:zpool(8)
 	DefaultDependencies=no
 	Requires=systemd-udev-settle.service
@@ -160,7 +160,7 @@ PassEnvironment=ZFS_ROOT_POOL
 
 	write_unit zfs-initrd-import.target <<-EOF
 	[Unit]
-	Description=ZFS pool import target for rootfs
+	Description=ZFS rootfs pool import target
 	Before=initrd-root-device.target
 	EOF
 
@@ -180,7 +180,7 @@ fi
 
 parse_cmdline
 
-case "${ZFS_ROOT_MODE:?}" in
+case "${ZFS_ROOT_MODE?}" in
 all|pool|dataset) ;;
 none) log "nothing to do"; exit 0 ;;
 *) die "invalid \$ZFS_ROOT_MODE=\"$ZFS_ROOT_MODE\"" ;;
