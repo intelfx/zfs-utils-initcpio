@@ -1,4 +1,4 @@
-#!/bin/busybox sh
+#!/usr/bin/busybox sh
 # shellcheck shell=busybox disable=SC3003
 
 set -eo pipefail
