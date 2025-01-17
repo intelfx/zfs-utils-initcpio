@@ -124,6 +124,10 @@ write_mount_unit() {
 	# HACK: write_unit puts sysroot.mount into generator.early/
 	#       to override the sysroot.mount from systemd-fstab-generator
 	write_unit "$unit" <<-EOF
+	[Unit]
+	Requires=initrd-root-device.target
+	After=initrd-root-device.target
+
 	[Mount]
 	Type=zfs
 	What=${what}
