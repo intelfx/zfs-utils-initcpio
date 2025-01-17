@@ -23,10 +23,10 @@ LIB_DIR="/usr/lib/zfs/initcpio"
 #
 
 enable_unit() {
-	local unit="$1" target="$2"
+	local unit="$1" target="$2" mode="${3-wants}"
 	log "adding $unit to $target"
-	install -dm755 "$GENERATOR_DIR/$target.wants"
-	ln -rsf "$GENERATOR_DIR/$unit" -t "$GENERATOR_DIR/$target.wants"
+	install -dm755 "$GENERATOR_DIR/$target.$mode"
+	ln -rsf "$GENERATOR_DIR/$unit" -t "$GENERATOR_DIR/$target.$mode"
 }
 
 write_unit() {
