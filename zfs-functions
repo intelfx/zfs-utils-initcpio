@@ -12,17 +12,19 @@ log() {
 
 # usage: log "message" [level]
 if [[ -t 2 ]]; then
-	:
+	log "${SCRIPT_NAME:?} started, logging to stderr" 7
 elif [[ -n $JOURNAL_STREAM ]] \
   && [[ -e /proc/self/fd/2 ]] \
   && [[ "$(stat -L -c "%d:%i" /proc/self/fd/2)" == "$JOURNAL_STREAM" ]]; then
 	log() {
 		echo "<${2:-"6"}>$1" >&2
 	}
+	log "${SCRIPT_NAME:?} started, logging to journal" 7
 else
 	log() {
 		echo "<${2:-"6"}>${SCRIPT_NAME:?}: $1" >/dev/kmsg
 	}
+	log "${SCRIPT_NAME:?} started, logging to kmsg" 7
 fi
 
 die() {
