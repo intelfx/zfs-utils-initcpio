@@ -15,8 +15,11 @@ LIB_DIR="/usr/lib/zfs/initcpio"
 
 setup_debug
 
-if vars_present; then
-	load_vars
+# The state file is loaded via systemd
+if [[ ${ZFS_ROOT_MODE+set} ]]; then
+	:
+# if vars_present; then
+# 	load_vars
 else
 	parse_cmdline
 fi

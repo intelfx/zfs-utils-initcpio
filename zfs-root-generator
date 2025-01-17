@@ -54,10 +54,8 @@ write_common_units() {
 	Type=oneshot
 	RemainAfterExit=yes
 	EnvironmentFile=-/etc/default/zfs
+	EnvironmentFile=-${STATE_FILE}
 	ExecStart=${LIB_DIR}/zfs-prepare-rootfs
-	PassEnvironment=ZFS_ROOT_MODE
-	PassEnvironment=ZFS_ROOT_POOL
-	PassEnvironment=ZFS_ROOT_DATASET
 	EOF
 
 	enable_unit zfs-initrd-prepare.service initrd-root-device.target
