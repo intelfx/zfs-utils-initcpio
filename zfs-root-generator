@@ -207,6 +207,10 @@ write_sysroot_recursive() {
 
 		if [[ "$sysrootpoint" == /sysroot ]]; then
 			targetunit="initrd-root-fs.target"
+		# initrd-usr-fs.target is not synchronized before initrd-switch-root.target
+		# and we do not support /usr on top of volatile rootfs, so don't use it
+		# elif [[ "$sysrootpoint" == /sysroot/usr ]]; then
+		# 	targetunit="initrd-usr-fs.target"
 		else
 			targetunit="initrd-fs.target"
 		fi
