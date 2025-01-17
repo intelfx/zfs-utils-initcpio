@@ -110,10 +110,13 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	write_unit zfs-initrd-import.target <<-EOF
 	[Unit]
 	Description=ZFS rootfs pool import target
-	Before=initrd-root-device.target
 	EOF
 
 	enable_unit zfs-initrd-import-scan.service zfs-initrd-import.target
+	# since zfs-initrd-import.target is a materialized unit, we can create a symlink here
+	# once ZFS gets rid of a single "import" serializing point and gains hotplug awareness
+	# (e.g. via synthetic per-zpool chardevs), we'd have to write a drop-in with Requires=/After= instead
+	# (see how systemd does it in shared/generator.c:generator_write_initrd_root_device_deps())
 	enable_unit zfs-initrd-import.target initrd-root-device.target
 }
 
