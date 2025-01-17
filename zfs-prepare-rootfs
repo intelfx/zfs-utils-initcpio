@@ -56,6 +56,11 @@ esac
 
 dump_vars
 
+if zfs list -Ho name -d1 "$ZFS_ROOT_DATASET" | grep -q -v -Fx "$ZFS_ROOT_DATASET"; then
+	log "nested datasets found under \"$ZFS_ROOT_DATASET\", reloading"
+	systemctl daemon-reload
+fi
+
 log "done"
 exit 0
 

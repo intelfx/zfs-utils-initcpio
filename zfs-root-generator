@@ -1,5 +1,5 @@
 #!/usr/bin/busybox sh
-# shellcheck shell=busybox disable=SC3003
+# shellcheck shell=busybox disable=SC3001,SC3003
 
 # cmdline format:
 #
@@ -116,9 +116,60 @@ write_mount_unit() {
 	Options=zfsutil
 	EnvironmentFile=${STATE_FILE}
 	EOF
+}
 
-	# TODO: other mount units from descendant datasets, if the pool has been
-	# imported and parsed (i.e. if this is a rerun a la systemd-parse-etc)
+write_nested_mount_units() {
+	local name canmount mountpoint
+	# mountpoint of the designated root dataset
+	# (this is supposed to be /, but might not be; compensate for it)
+	# TODO: once openzfs/zfs#4553 and openzfs/zfs#985 are fully resolved,
+	#       use temporary mountpoints here
+	local mountbase
+	# temporary mountpoint under /sysroot
+	local sysrootpoint sysrootunit
+
+	while IFS=$'\t' read -r name canmount mountpoint; do
+		if [[ "$name" == "$ZFS_ROOT_DATASET" ]]; then
+			if [[ "$mountpoint" != "/" ]]; then
+				log "warning: root dataset \"$ZFS_ROOT_DATASET\" has mountpoint=\"$mountbase\"" 4
+				log "note: root dataset should have mountpoint=\"/\"" 5
+				log "note: this will be compensated for, but newly created descendant datasets will not be mounted properly until reboot" 5
+			fi
+			mountbase="$mountpoint"
+
+			if [[ "$canmount" == "off" ]]; then
+				log "error: root dataset \"$ZFS_ROOT_DATASET\" has canmount=\"$canmount\"" 3
+				log "note: root dataset should have canmount=(noauto|on)" 5
+				log "note: this will be compensated for, but things may break" 5
+			fi
+			canmount="(override)"
+		fi
+
+		if [[ "$canmount" == off ]]; then
+			log "debug: nested dataset \"$name\" has canmount=\"$canmount\"" 7
+			log "debug: this dataset will be ignored" 7
+			continue
+		fi
+
+		if ! [[ "$mountpoint" == "$mountbase" || "$mountpoint" == "$mountbase"/* ]]; then
+			log "debug: nested dataset \"$name\" has mountpoint=\"$mountpoint\" not under \"$mountbase\"" 7
+			log "debug: this dataset will be ignored" 7
+			continue
+		fi
+
+		sysrootpoint="/sysroot${mountpoint#"${mountbase:?}"}"
+		sysrootunit="$(systemd-escape --path --suffix=mount "$sysrootpoint")"
+
+		log "debug: dataset=\"$name\" canmount=\"$canmount\" mountpoint=\"$mountpoint\" (mountbase=\"$mountbase\") target=\"$sysrootpoint\" unit=\"$sysrootunit\"" 7
+
+		write_unit "$sysrootunit" <<-EOF
+		[Mount]
+		Type=zfs
+		What=${name}
+		Where=${sysrootpoint}
+		Options=zfsutil
+		EOF
+	done < <(zfs list -Ho name,canmount,mountpoint -r "${ZFS_ROOT_DATASET:?}")
 }
 
 
@@ -147,7 +198,17 @@ esac
 
 write_common_units
 write_import_unit
-write_mount_unit
+
+# if the designated root dataset exists
+if [[ $ZFS_ROOT_POOL && $ZFS_ROOT_DATASET ]] \
+&& zfs list -Ho name "$ZFS_ROOT_DATASET" &>/dev/null; then
+	log "pool opened and dataset exists, writing nested mount units"
+	write_nested_mount_units
+else
+	log "pool not opened or dataset does not exist, writing sysroot.mount only"
+	write_mount_unit
+fi
+
 dump_vars
 
 log "done"

@@ -51,9 +51,11 @@ build() {
 		/usr/lib/zfs/initcpio/zfs-parse-cmdline \
 		/usr/lib/zfs/initcpio/zfs-prepare-rootfs \
 
+	# support binaries (tools) not part of busybox
 	# XXX: get rid of xargs (ask mkinitcpio-busybox to build xargs)
 	# XXX: get rid of stdbuf (debugging hack)
 	map add_binary \
+		systemd-escape \
 		xargs \
 		stdbuf \
 		/usr/lib/coreutils/libstdbuf.so \
