@@ -108,7 +108,7 @@ dump_vars() {
 			log "writing: \$$k=$v"
 			printf "%s=%s\n" "$k" "$v"
 		fi
-	done >"$STATE_FILE"
+	done | install -Dm600 /dev/stdin "$STATE_FILE"
 }
 
 load_vars() {
