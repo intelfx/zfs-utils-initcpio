@@ -220,7 +220,9 @@ write_common_units
 write_import_unit
 
 # if the designated root dataset exists
+# (/proc/...: check if the pool is imported without triggering zfs.ko auto-load)
 if [[ $ZFS_ROOT_POOL && $ZFS_ROOT_DATASET ]] \
+&& [[ -e "/proc/spl/kstat/zfs/$ZFS_ROOT_POOL/state" ]] \
 && zfs list -Ho name "$ZFS_ROOT_DATASET" &>/dev/null; then
 	log "pool opened and dataset exists, writing nested mount units"
 	write_sysroot_recursive
