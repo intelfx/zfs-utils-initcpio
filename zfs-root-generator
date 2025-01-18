@@ -125,13 +125,22 @@ write_nested_mount_units() {
 	# TODO: once openzfs/zfs#4553 and openzfs/zfs#985 are fully resolved,
 	#       use temporary mountpoints here
 	local mountbase
+	# mountpoint relative to mountbase, normalized (see below)
+	local relpoint
 	# temporary mountpoint under /sysroot
 	local sysrootpoint sysrootunit
 
+	# Woo, another normalization dance...
+	#
+	# mountpoint=/            mountbase=/        relpoint=      sysrootpoint=/sysroot
+	# mountpoint=/usr         mountbase=/        relpoint=/usr  sysrootpoint=/sysroot/usr
+	# mountpoint=/target      mountbase=/target  relpoint=      sysrootpoint=/sysroot
+	# mountpoint=/target/usr  mountbase=/target  relpoint=/usr  sysrootpoint=/sysroot/usr
+	#
 	while IFS=$'\t' read -r name canmount mountpoint; do
 		if [[ "$name" == "$ZFS_ROOT_DATASET" ]]; then
 			if [[ "$mountpoint" != "/" ]]; then
-				log "warning: root dataset \"$ZFS_ROOT_DATASET\" has mountpoint=\"$mountbase\"" 4
+				log "warning: root dataset \"$ZFS_ROOT_DATASET\" has mountpoint=\"$mountpoint\"" 4
 				log "note: root dataset should have mountpoint=\"/\"" 5
 				log "note: this will be compensated for, but newly created descendant datasets will not be mounted properly until reboot" 5
 			fi
@@ -151,13 +160,24 @@ write_nested_mount_units() {
 			continue
 		fi
 
-		if ! [[ "$mountpoint" == "$mountbase" || "$mountpoint" == "$mountbase"/* ]]; then
+		# unfortunately, busybox ash [[ expansion rules are braindead
+		# and it cannot be used for anything where rhs consists of a
+		# literal part and a pattern part, e.g.:
+		#   if ! [[ "$mountpoint" == "$mountbase" || "$mountpoint" == "${mountbase%/}"/* ]]; then
+		# anyway, normalization dance
+		case "$mountpoint" in
+		"$mountbase")
+			relpoint='' ;;
+		"${mountbase%/}"/*)
+			relpoint="${mountpoint#"${mountbase%/}"}" ;;
+		*)
 			log "debug: nested dataset \"$name\" has mountpoint=\"$mountpoint\" not under \"$mountbase\"" 7
 			log "debug: this dataset will be ignored" 7
 			continue
-		fi
+			;;
+		esac
 
-		sysrootpoint="/sysroot${mountpoint#"${mountbase:?}"}"
+		sysrootpoint="/sysroot$relpoint"
 		sysrootunit="$(systemd-escape --path --suffix=mount "$sysrootpoint")"
 
 		log "debug: dataset=\"$name\" canmount=\"$canmount\" mountpoint=\"$mountpoint\" (mountbase=\"$mountbase\") target=\"$sysrootpoint\" unit=\"$sysrootunit\"" 7
