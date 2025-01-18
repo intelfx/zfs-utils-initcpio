@@ -118,7 +118,7 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 }
 
 write_mount_unit() {
-	local what="$1" where="$2" unit
+	local what="$1" where="$2" unit target="$3"
 
 	unit="$(systemd-escape --path --suffix=mount "$where")"
 	# HACK: write_unit puts sysroot.mount into generator.early/
@@ -127,6 +127,7 @@ write_mount_unit() {
 	[Unit]
 	Requires=initrd-root-device.target
 	After=initrd-root-device.target
+	Before=${target}
 
 	[Mount]
 	Type=zfs
@@ -135,10 +136,11 @@ write_mount_unit() {
 	Options=zfsutil
 	EnvironmentFile=${STATE_FILE}
 	EOF
+	enable_unit "$unit" "$target"
 }
 
 write_sysroot_unit() {
-	write_mount_unit "\${ZFS_ROOT_DATASET}" "/sysroot"
+	write_mount_unit "\${ZFS_ROOT_DATASET}" "/sysroot" "initrd-root-fs.target"
 }
 
 write_sysroot_recursive() {
@@ -152,6 +154,7 @@ write_sysroot_recursive() {
 	local relpoint
 	# temporary mountpoint under /sysroot
 	local sysrootpoint
+	local targetunit
 
 	# Woo, another normalization dance...
 	#
@@ -202,8 +205,14 @@ write_sysroot_recursive() {
 
 		sysrootpoint="/sysroot$relpoint"
 
+		if [[ "$sysrootpoint" == /sysroot ]]; then
+			targetunit="initrd-root-fs.target"
+		else
+			targetunit="initrd-fs.target"
+		fi
+
 		log "debug: dataset=\"$name\" canmount=\"$canmount\" mountpoint=\"$mountpoint\" (mountbase=\"$mountbase\") target=\"$sysrootpoint\"" 7
-		write_mount_unit "$name" "$sysrootpoint"
+		write_mount_unit "$name" "$sysrootpoint" "$targetunit"
 
 	done < <(zfs list -Ho name,canmount,mountpoint -r "${ZFS_ROOT_DATASET:?}")
 }
