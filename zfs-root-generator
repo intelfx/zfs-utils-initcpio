@@ -63,7 +63,6 @@ write_common_units() {
 
 	[Service]
 	Type=oneshot
-	RemainAfterExit=yes
 	EnvironmentFile=-/etc/default/zfs
 	EnvironmentFile=-${STATE_FILE}
 	ExecStart=${LIB_DIR}/zfs-prepare-rootfs
