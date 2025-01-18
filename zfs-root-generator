@@ -57,7 +57,7 @@ write_common_units() {
 	[Unit]
 	Description=Prepare to mount ZFS rootfs
 	DefaultDependencies=no
-	Wants=zfs-initrd-import.target
+	Requires=zfs-initrd-import.target
 	After=zfs-initrd-import.target
 	Before=initrd-root-device.target
 
@@ -69,18 +69,20 @@ write_common_units() {
 	ExecStart=${LIB_DIR}/zfs-prepare-rootfs
 	EOF
 
-	enable_unit zfs-initrd-prepare.service initrd-root-device.target
+	enable_unit zfs-initrd-prepare.service initrd-root-device.target requires
 }
 
 write_import_unit() {
-	local import_cmds
+	local import_cmds import_mode
 
 	case "${ZFS_ROOT_MODE?}" in
-		all) import_cmds="\
+		# we are trying to import all pools opportunistically,
+		# don't fail if some can't be imported
+		all) import_mode=wants; import_cmds="\
 ExecStart=/usr/bin/zpool import -N -o cachefile=none -a
 " ;;
 
-		pool|dataset) import_cmds="\
+		pool|dataset) import_mode=requires; import_cmds="\
 ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 " ;;
 
@@ -112,12 +114,12 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	Description=ZFS rootfs pool import target
 	EOF
 
-	enable_unit zfs-initrd-import-scan.service zfs-initrd-import.target
+	enable_unit zfs-initrd-import-scan.service zfs-initrd-import.target "$import_mode"
 	# since zfs-initrd-import.target is a materialized unit, we can create a symlink here
 	# once ZFS gets rid of a single "import" serializing point and gains hotplug awareness
 	# (e.g. via synthetic per-zpool chardevs), we'd have to write a drop-in with Requires=/After= instead
 	# (see how systemd does it in shared/generator.c:generator_write_initrd_root_device_deps())
-	enable_unit zfs-initrd-import.target initrd-root-device.target
+	enable_unit zfs-initrd-import.target initrd-root-device.target requires
 }
 
 write_mount_unit() {
@@ -139,7 +141,7 @@ write_mount_unit() {
 	Options=zfsutil
 	EnvironmentFile=${STATE_FILE}
 	EOF
-	enable_unit "$unit" "$target"
+	enable_unit "$unit" "$target" requires
 }
 
 write_sysroot_unit() {
