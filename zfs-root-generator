@@ -115,6 +115,7 @@ write_mount_unit() {
 	PassEnvironment=ZFS_ROOT_DATASET
 	Type=zfs
 	What=\${ZFS_ROOT_DATASET}
+	Where=/sysroot
 	Options=zfsutil
 	EOF
 
