@@ -107,18 +107,25 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 }
 
 write_mount_unit() {
-	# install -Dm644 /dev/stdin "$GENERATOR_DIR/sysroot.mount.d/zfs-override.conf"
-	write_unit sysroot.mount <<-EOF
+	local what="$1" where="$2" unit
+
+	unit="$(systemd-escape --path --suffix=mount "$where")"
+	write_unit "$unit" <<-EOF
 	[Mount]
 	Type=zfs
-	What=\${ZFS_ROOT_DATASET}
-	Where=/sysroot
+	What=${what}
+	Where=${where}
 	Options=zfsutil
 	EnvironmentFile=${STATE_FILE}
 	EOF
 }
 
-write_nested_mount_units() {
+write_sysroot_unit() {
+	# install -Dm644 /dev/stdin "$GENERATOR_DIR/sysroot.mount.d/zfs-override.conf"
+	write_mount_unit "\${ZFS_ROOT_DATASET}" "/sysroot"
+}
+
+write_sysroot_recursive() {
 	local name canmount mountpoint
 	# mountpoint of the designated root dataset
 	# (this is supposed to be /, but might not be; compensate for it)
@@ -128,7 +135,7 @@ write_nested_mount_units() {
 	# mountpoint relative to mountbase, normalized (see below)
 	local relpoint
 	# temporary mountpoint under /sysroot
-	local sysrootpoint sysrootunit
+	local sysrootpoint
 
 	# Woo, another normalization dance...
 	#
@@ -178,17 +185,10 @@ write_nested_mount_units() {
 		esac
 
 		sysrootpoint="/sysroot$relpoint"
-		sysrootunit="$(systemd-escape --path --suffix=mount "$sysrootpoint")"
 
-		log "debug: dataset=\"$name\" canmount=\"$canmount\" mountpoint=\"$mountpoint\" (mountbase=\"$mountbase\") target=\"$sysrootpoint\" unit=\"$sysrootunit\"" 7
+		log "debug: dataset=\"$name\" canmount=\"$canmount\" mountpoint=\"$mountpoint\" (mountbase=\"$mountbase\") target=\"$sysrootpoint\"" 7
+		write_mount_unit "$name" "$sysrootpoint"
 
-		write_unit "$sysrootunit" <<-EOF
-		[Mount]
-		Type=zfs
-		What=${name}
-		Where=${sysrootpoint}
-		Options=zfsutil
-		EOF
 	done < <(zfs list -Ho name,canmount,mountpoint -r "${ZFS_ROOT_DATASET:?}")
 }
 
@@ -223,10 +223,10 @@ write_import_unit
 if [[ $ZFS_ROOT_POOL && $ZFS_ROOT_DATASET ]] \
 && zfs list -Ho name "$ZFS_ROOT_DATASET" &>/dev/null; then
 	log "pool opened and dataset exists, writing nested mount units"
-	write_nested_mount_units
+	write_sysroot_recursive
 else
 	log "pool not opened or dataset does not exist, writing sysroot.mount only"
-	write_mount_unit
+	write_sysroot_unit
 fi
 
 dump_vars
