@@ -25,7 +25,7 @@ setup_stderr() {
 # usage: log "message" [level]
 if [[ -t 2 ]]; then
 	log "${SCRIPT_NAME:?} started, logging to stderr" 7
-elif [[ -n $JOURNAL_STREAM ]] \
+elif [[ -n "$JOURNAL_STREAM" ]] \
   && [[ -e /proc/self/fd/2 ]] \
   && [[ "$(stat -L -c "%d:%i" /proc/self/fd/2)" == "$JOURNAL_STREAM" ]]; then
 	log() {
