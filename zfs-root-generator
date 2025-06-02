@@ -36,7 +36,7 @@ enable_unit() {
 	local unit="$1" target="$2" mode="${3-wants}"
 	log "adding $unit to $target"
 	install -dm755 "$(place_unit "$target").$mode"
-	ln -rsf "$(place_unit "$unit")" -t "$(place_unit "$target").$mode"
+	ln -sf "$(place_unit "$unit")" "$(place_unit "$target").$mode/"
 }
 
 write_unit() {
