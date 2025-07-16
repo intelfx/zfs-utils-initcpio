@@ -1,7 +1,15 @@
 #!/usr/bin/awk -f
 
+# Accepts a newline-separated list of kernel cmdline words. Suggested usage:
+# > cat /proc/cmdline | xargs printf "%s\n" | zfs-parse-cmdline
+#
+# Interprets special forms of `root=` kernel cmdline parameter:
+# - `root=zfs`: import all pools (`ZFS_ROOT_MODE=all`)
+# - `root=zfs:<POOL>`: import <POOL> and use bootfs property (`ZFS_ROOT_MODE=pool`)
+# - `root=zfs:<POOL>/<DATASET>`: import <POOL> and use <DATASET> (`ZFS_ROOT_MODE=dataset`)
+
 # Returns a set of KEY=val assignments
-# - ZFS_ROOT_MODE: "dataset", "import", "import_all", "none"
+# - ZFS_ROOT_MODE: "dataset", "pool", "all", "none"
 #   - all: import all pools, use the first one with a bootfs property
 #   - pool: import a specific pool, use bootfs to determine the dataset
 #   - dataset: import a specific pool, use a specific dataset
