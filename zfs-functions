@@ -18,6 +18,9 @@ STATE_FILE="$STATE_DIR/state"
 log() {
 	echo "${SCRIPT_NAME:?}: $1" >&2
 }
+dbg() {
+	log "$1" 7
+}
 setup_stderr() {
 	:
 }
@@ -55,6 +58,12 @@ setup_debug() {
 	if [[ ${ZFS_ROOT_DEBUG+set} ]] || grep -q -Ew 'zfsroot.debug' /proc/cmdline; then
 		setup_stderr
 		set -x
+	fi
+}
+
+dry_run() {
+	if ! [[ ${DRY_RUN+set} ]]; then
+		"$@"
 	fi
 }
 

@@ -48,8 +48,8 @@ build() {
 	add_file /usr/lib/zfs/initcpio/zfs-root-generator /usr/lib/systemd/system-generators/
 	map add_file \
 		/usr/lib/zfs/initcpio/zfs-functions \
-		/usr/lib/zfs/initcpio/zfs-parse-cmdline \
-		/usr/lib/zfs/initcpio/zfs-prepare-rootfs \
+		/usr/lib/zfs/initcpio/zfs-parse-* \
+		/usr/lib/zfs/initcpio/zfs-prepare-* \
 
 	# support binaries (tools) not part of busybox
 	# XXX: get rid of xargs (ask mkinitcpio-busybox to build xargs)
@@ -95,6 +95,20 @@ must be specified. Three modes of operation are supported:
      the pool's bootfs as root;
   3. `root=zfs:poolname/dataset`, which imports the specified pool and then
      mounts the specified dataset as root (ignoring bootfs property).
+
+Additionally, rudimentary dual-boot support from the same pool is provided.
+To mark all datasets that belong to the same OS, set a `dev.sd-zfs:machine-id`
+property to the same value on all such datasets. Datasets with other values
+of this property will not be mounted. Datasets with no such property will be
+considered "shared" and will not receive any special handling.
+
+When dual-boot support is in use, a special `zfsalt=` kernel cmdline parameter
+may also be specified. When set to `/path`, datasets that belong to other OSes
+will be mounted under `/path/<dev.sd-zfs:machine-id>` instead of being ignored.
+
+WARNING: the dual-boot support is implemented by statefully adjusting the
+         `canmount` and `mountpoint` properties on the participating datasets,
+         and therefore must be considered a hack.
 EOF
 }
 

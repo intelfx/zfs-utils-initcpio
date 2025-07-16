@@ -60,6 +60,8 @@ esac
 
 dump_vars
 
+"$LIB_DIR/zfs-prepare-multiboot"
+
 if zfs list -Ho name -d1 "$ZFS_ROOT_DATASET" | grep -q -v -Fx "$ZFS_ROOT_DATASET"; then
 	log "nested datasets found under \"$ZFS_ROOT_DATASET\", reloading" 5
 	systemctl daemon-reload
