@@ -11,6 +11,13 @@
 # Alternatively, `zfsroot=` parameter may be used with the equivalent semantics.
 # This is supported to avoid inhibiting systemd-gpt-auto-generator (which might
 # be useful e.g. to auto-configure LUKS decryption).
+#
+# Additionally, interprets `zfsalt=` kernel cmdline parameter:
+# - `zfsalt=ignore`: ignore (do not mount) other OS roots
+# - `zfsalt=/path`: mount other OS roots under `/path/(id)`
+#
+# "Other OS roots" are defined as datasets which have a different value of the
+# `dev.zfsboot:machine-id` property than the bootfs.
 
 # Returns a set of KEY=val assignments
 # - ZFS_ROOT_MODE: "dataset", "pool", "all", "none"
@@ -20,6 +27,8 @@
 #   - none: not using zfs for root
 # - ZFS_ROOT_POOL: contains the root pool name (used with mode "dataset" and "pool")
 # - ZFS_ROOT_DATASET: contains the root dataset name (used with mode "dataset")
+# - ZFS_ROOT_ALT_PREFIX: contains the mountpoint prefix for other OS roots
+#                        (empty if "ignore")
 
 $0 ~ /^root=/ {
 	root = substr($0, 6)
@@ -27,6 +36,10 @@ $0 ~ /^root=/ {
 
 $0 ~ /^zfsroot=/ {
 	root = substr($0, 9)
+}
+
+$0 ~ /^zfsalt=/ {
+	alt = substr($0, 8)
 }
 
 END {
@@ -49,6 +62,10 @@ END {
 		zfs_root_mode = "none"
 	}
 
+	if (alt && alt != "ignore") {
+		zfs_alt = alt
+	}
+
 	printf "ZFS_ROOT_MODE=%s\n", zfs_root_mode
 	if (zfs_root_pool) {
 		printf "ZFS_ROOT_POOL=%s\n", zfs_root_pool
@@ -56,6 +73,7 @@ END {
 	if (zfs_root_dataset) {
 		printf "ZFS_ROOT_DATASET=%s\n", zfs_root_dataset
 	}
+	printf "ZFS_ROOT_ALT_PREFIX=%s\n", zfs_alt
 }
 
 # vim: ft=awk ts=8 noet:

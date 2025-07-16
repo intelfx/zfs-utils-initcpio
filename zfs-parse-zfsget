@@ -1,0 +1,53 @@
+#!/usr/bin/awk -f
+
+#
+# Transform a `zfs get -H prop1,...,propN` output into a one-line-per-dataset
+# format.
+#
+# Input:
+# ---
+# DATASET1 PROP1-NAME PROP1-VALUE PROP1-SOURCE
+# ...
+# DATASET1 PROPN-NAME PROPN-VALUE PROPN-SOURCE
+# DATASET2 PROP1-NAME PROP1-VALUE PROP1-SOURCE
+# ...
+# DATASET2 PROPN-NAME PROPN-VALUE PROPN-SOURCE
+# ...
+# ---
+#
+# Output:
+# ---
+# DATASET1 PROP1-VALUE PROP1-SOURCE ... PROPN-VALUE PROPN-SOURCE
+# DATASET2 PROP1-VALUE PROP1-SOURCE ... PROPN-VALUE PROPN-SOURCE
+# ...
+# ---
+#
+
+function flush() {
+	line = items[0]
+	for (i = 1; i < n_items; ++i)
+		line = line "\t" items[i]
+	printf("%s\n", line)
+	n_items = 0
+	delete items
+}
+
+BEGIN {
+	FS = "\t"
+	n_items = 0
+	delete items
+}
+
+{
+	if (n_items && items[0] != $1)
+		flush()
+	if (!n_items)
+		items[n_items++] = $1
+	items[n_items++] = $3
+	items[n_items++] = $4
+}
+
+END {
+	if (n_items)
+		flush()
+}

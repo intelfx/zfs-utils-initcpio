@@ -1,0 +1,195 @@
+#!/usr/bin/busybox sh
+# shellcheck shell=busybox disable=SC3001,SC3003
+
+set -eo pipefail
+
+SCRIPT_NAME="zfs-prepare-multiboot"
+: ${LIB_DIR="/usr/lib/zfs/initcpio"}
+# shellcheck source=zfs-functions
+. "$LIB_DIR/zfs-functions"
+
+
+#
+# definitions
+#
+
+PROP_MACHINE_ID="dev.sd-zfs:machine-id"
+PROP_LAST_ALT="dev.sd-zfs:last-alt"
+
+
+#
+# main
+#
+
+setup_debug
+
+# The state file is inherited from the calling script
+if [[ ${ZFS_ROOT_MODE+set} ]]; then
+	:
+# if vars_present; then
+# 	load_vars
+# else
+# 	parse_cmdline
+else
+	die "must be invoked with state variables in the environment"
+fi
+
+[[ ${ZFS_ROOT_POOL+set} ]] || die "internal: \$ZFS_ROOT_POOL not set"
+[[ ${ZFS_ROOT_DATASET+set} ]] || die "internal: \$ZFS_ROOT_DATASET not set"
+[[ ${ZFS_ROOT_ALT_PREFIX+set} ]] || die "internal: \$ZFS_ROOT_ALT_PREFIX not set"
+
+BOOT_MACHINE_ID="$(zfs list -Ho "$PROP_MACHINE_ID" "$ZFS_ROOT_DATASET")"
+if [[ "$BOOT_MACHINE_ID" == "-" ]]; then
+	log "no $PROP_MACHINE_ID set for \"$ZFS_ROOT_DATASET\", exiting"
+	exit 0
+fi
+
+zfs_prop_set() {
+	local propname="$1" propvalue="$2"
+	if [[ "$propname" == mountpoint ]] && [[ "$propvalue" == "$mountpoint" ]]; then
+		dbg "$name: [$propname] no-change"
+	elif [[ "$propname" == mountpoint ]]; then
+		dbg "$name: [$propname] update $propvalue from $mountpoint"
+	else
+		dbg "$name: [$propname] set $propvalue"
+	fi
+
+	dry_run zfs set "$propname=$propvalue" "$name"
+}
+
+zfs_prop_clear() {
+	local propname="$1"
+	dbg "$name: [$propname] clear"
+	dry_run zfs inherit -S "$propname" "$name"
+}
+
+_zfs_describe_mountpoint() {
+	local buf
+	if [[ "$mountpoint_s" == local ]]; then
+		buf="mountpoint=$mountpoint"
+	elif [[ "$mountpoint_s" == inherited* ]]; then
+		buf="mountpoint=(inherited)"
+	else
+		buf="mountpoint=(unset)"
+	fi
+	if [[ "$last_alt" == "-" ]]; then
+		buf="$buf last-alt=(unset)"
+	elif [[ "$last_alt_s" == "-" ]]; then
+		buf="$buf last-alt=$last_alt (ASSUMED)"
+	else
+		buf="last-alt=$last_alt"
+	fi
+	printf "%s\n" "$buf"
+}
+
+OUR_BOOTFS=""
+NOT_OUR_BOOTFS=""
+NOT_MOUNTED_BOOTFS=""
+
+while IFS=$'\t' read -r \
+		name \
+		canmount _ \
+		mountpoint mountpoint_s \
+		machine_id _ \
+		last_alt last_alt_s
+do
+	target_alt=""
+	target_canmount=""
+
+	# if last alt-prefix is not recorded, try likely values
+	if [[ "$last_alt" == "-" ]] && [[ "$machine_id" != "-" ]]; then
+		if [[ "$ZFS_ROOT_ALT_PREFIX" ]]; then
+			# try the value of `zfsalt=` if set
+			last_alt="$ZFS_ROOT_ALT_PREFIX/$machine_id"
+		else
+			# try `/target/$machine_id`
+			last_alt="/target/$machine_id"
+		fi
+	fi
+	# if last alt-prefix is not recorded, assume none (i.e., "/")
+	if [[ "$last_alt" == "-" ]] && [[ "$machine_id" != "-" ]]; then
+		last_alt="/"
+	fi
+
+	case "$machine_id" in
+	-)
+		# non-participating dataset
+		dbg "$name: SHARED: canmount=$canmount $(_zfs_describe_mountpoint)"
+		;;
+
+	"$BOOT_MACHINE_ID")
+		# participating dataset, current OS
+		dbg "$name: OUR ($machine_id): canmount=$canmount $(_zfs_describe_mountpoint)"
+
+		target_canmount="on"
+		target_alt="/"
+		;;
+
+	*)
+		# participating dataset, non-current OS
+		dbg "$name: NOT-OUR ($machine_id): canmount=$canmount $(_zfs_describe_mountpoint)"
+
+		if [[ "$ZFS_ROOT_ALT_PREFIX" ]]; then
+			# non-current OS datasets need to be mounted under alt-prefix
+			target_canmount="on"
+			target_alt="$ZFS_ROOT_ALT_PREFIX/$machine_id"
+		else
+			# non-current OS datasets do not need to be mounted
+			target_canmount="noauto"
+			target_alt="/"
+		fi
+		;;
+	esac
+
+	if [[ "$target_canmount" ]] && [[ "$canmount" != off ]]; then
+		zfs_prop_set canmount "$target_canmount"
+	fi
+
+	if [[ "$target_alt" ]] && [[ "$mountpoint_s" == local ]]; then
+		target_mountpoint="$(mountpoint_rebase_if "$mountpoint" "$last_alt" "$target_alt")"
+		zfs_prop_set mountpoint "$target_mountpoint"
+		zfs_prop_set "$PROP_LAST_ALT" "$target_alt"
+	else
+		zfs_prop_clear "$PROP_LAST_ALT"
+	fi
+
+	if [[ ! "$target_canmount" ]] && [[ ! "$target_mountpoint" ]]; then
+		:
+	elif [[ "$target_canmount" == on ]] && [[ "$target_mountpoint" == / ]]; then
+		OUR_BOOTFS="${OUR_BOOTFS:+"$OUR_BOOTFS "}$name"
+		if [[ "$name" != "$ZFS_ROOT_DATASET" ]]; then
+			log "error: derived a root dataset which is not bootfs: bootfs=$ZFS_ROOT_DATASET, dataset=$name" 3
+		fi
+	elif [[ "$target_canmount" == on ]] && [[ "$target_mountpoint" == "$target_alt" ]]; then
+		NOT_OUR_BOOTFS="${NOT_OUR_BOOTFS:+"$NOT_OUR_BOOTFS "}$name"
+	elif [[ "$target_canmount" != on ]] && [[ "$target_mountpoint" == "$target_alt" ]]; then
+		NOT_MOUNTED_BOOTFS="${NOT_MOUNTED_BOOTFS:+"$NOT_MOUNTED_BOOTFS "}$name"
+	fi
+
+	dbg ""
+
+done < <( \
+	zfs get -H -r -t filesystem \
+		canmount,mountpoint,"$PROP_MACHINE_ID","$PROP_LAST_ALT" \
+		"$ZFS_ROOT_POOL" \
+	| awk -f "$LIB_DIR/zfs-parse-zfsget" \
+)
+
+n="$(echo "$OUR_BOOTFS" | wc -w)"
+if [[ "$n" == 1 ]]; then
+	log "Found $n target OS root: ${OUR_BOOTFS// /, }"
+elif [[ "$n" != 0 ]]; then
+	log "error: found $n != 1 target OS roots: ${OUR_BOOTFS// /, }" 3
+else
+	log "error: did not find any target OS roots" 3
+fi
+
+n="$(echo "$NOT_OUR_BOOTFS" | wc -w)"
+if [[ "$n" != 0 ]]; then
+	log "Will mount $n other OS roots: ${NOT_OUR_BOOTFS// /, }"
+fi
+
+n="$(echo "$NOT_MOUNTED_BOOTFS" | wc -w)"
+if [[ "$n" != 0 ]]; then
+	log "Will ignore $n other OS roots: ${NOT_MOUNTED_BOOTFS// /, }"
+fi
