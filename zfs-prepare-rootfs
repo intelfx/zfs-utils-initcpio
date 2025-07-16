@@ -64,4 +64,4 @@ fi
 log "done"
 exit 0
 
-# vim: ft=sh ts=8 noet:
+# vim: ft=bash ts=8 noet:

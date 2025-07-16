@@ -118,4 +118,4 @@ load_vars() {
 	done <"$STATE_FILE"
 }
 
-# vim: ft=sh ts=8 noet:
+# vim: ft=bash ts=8 noet:
