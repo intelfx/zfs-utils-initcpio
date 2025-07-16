@@ -20,3 +20,9 @@ is set. Three modes of operation are supported:
      the pool's `bootfs` as root.
   3. `root=zfs:poolname/dataset`, which imports the specified pool and then
      mounts the specified dataset as root.
+
+Alternatively, `zfsroot=` parameter may be used with the equivalent semantics.
+This is supported to avoid inhibiting systemd-gpt-auto-generator (which might
+be useful e.g. to auto-configure LUKS decryption). If you need this generator
+to run in the initramfs, replace `root=` with `zfsroot=` in the instruction
+above.

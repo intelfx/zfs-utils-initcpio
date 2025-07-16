@@ -86,8 +86,8 @@ This hook is implemented using shell scripts, thus it still requires busybox
 (and several standalone coreutils programs). If the `base` hook is not used,
 these binaries will be added to the initcpio.
 
-To use this hook, a special `root=` kernel cmdline parameter must be specified.
-Three modes of operation are supported:
+To use this hook, a special `root=` or `zfsroot=` kernel cmdline parameter
+must be specified. Three modes of operation are supported:
 
   1. `root=zfs`, which imports all pools in initrd, searches for the first pool
       with the `bootfs` property set, and then mounts that dataset as root;

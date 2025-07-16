@@ -103,6 +103,11 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	Before=zfs-initrd-import.target
 	ConditionPathIsDirectory=/sys/module/zfs
 
+	# HACK: systemd-gpt-auto-generator is completely crazy and I cannot wrap my head
+	# around the dependency chain it creates, so add a bunch of extra dependencies
+	# to order us specifically after the units it creates.
+	After=systemd-cryptsetup@root.service
+
 	[Service]
 	Type=oneshot
 	RemainAfterExit=yes
@@ -124,6 +129,11 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	# (e.g. via synthetic per-zpool chardevs), we'd have to write a drop-in with Requires=/After= instead
 	# (see how systemd does it in shared/generator.c:generator_write_initrd_root_device_deps())
 	enable_unit zfs-initrd-import.target initrd-root-device.target requires
+
+	# TODO: all of this does not play nice with systemd-gpt-auto-generator.
+	# Perhaps investigate if we could plug the entire zfs-initrd-import.target
+	# _after_ initrd-root-device.target, and make sysroot.mount depend on
+	# zfs-initrd-import.target specifically?
 }
 
 write_mount_unit() {
