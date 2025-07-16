@@ -57,6 +57,7 @@ write_common_units() {
 	[Unit]
 	Description=Prepare to mount ZFS rootfs
 	DefaultDependencies=no
+	IgnoreOnIsolate=yes
 	Requires=zfs-initrd-import.target
 	After=zfs-initrd-import.target
 	Before=initrd-root-device.target
@@ -94,6 +95,7 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	Description=Import ZFS rootfs pool(s) by device scanning
 	Documentation=man:zpool(8)
 	DefaultDependencies=no
+	IgnoreOnIsolate=yes
 	Requires=systemd-udev-settle.service
 	After=systemd-udev-settle.service
 	After=cryptsetup.target
@@ -112,6 +114,8 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	write_unit zfs-initrd-import.target <<-EOF
 	[Unit]
 	Description=ZFS rootfs pool import target
+	DefaultDependencies=no
+	IgnoreOnIsolate=yes
 	EOF
 
 	enable_unit zfs-initrd-import-scan.service zfs-initrd-import.target "$import_mode"
