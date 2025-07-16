@@ -57,8 +57,17 @@ esac
 dump_vars
 
 if zfs list -Ho name -d1 "$ZFS_ROOT_DATASET" | grep -q -v -Fx "$ZFS_ROOT_DATASET"; then
-	log "nested datasets found under \"$ZFS_ROOT_DATASET\", reloading"
+	log "nested datasets found under \"$ZFS_ROOT_DATASET\", reloading" 5
 	systemctl daemon-reload
+
+	# XXX: initrd-fs.target is enqueued before we have a chance to parse the pool,
+	#      and thus it does not consider the new dependencies (nested datasets)
+	#      we just wrote above during the daemon-reload call as part of the
+	#      transaction. I do not know how this is supposed to work
+	#      (initrd-parse-etc.service, which is the non-zfs equivalent
+	#      to "parse nested filesystems", is executed even _later_).
+	#      Try to reenqueue the unit.
+	systemctl restart --no-block initrd-fs.target
 fi
 
 log "done"
