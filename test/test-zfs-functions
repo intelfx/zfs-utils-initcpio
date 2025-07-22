@@ -117,4 +117,18 @@ expect_one "0" "/foonew/bar" \
 expect_one "0" "/foonew" \
 	mountpoint_rebase     /         /     /foonew
 
+expect_one "0" "/foo" \
+	mountpoint_rebase_if  /foo      /bar  /
+expect_one "0" "/foo" \
+	mountpoint_rebase_if  /foo      /bar  ""
+expect_one "0" "/foonew/foo" \
+	mountpoint_rebase_if  /foo      /bar  /foonew
+
+expect_one "0" "/" \
+	mountpoint_rebase_if  /         /bar  /
+expect_one "0" "" \
+	mountpoint_rebase_if  /         /bar  ""
+expect_one "0" "/foonew" \
+	mountpoint_rebase_if  /         /bar  /foonew
+
 } | column -t -s "$sep" -o " ⇒ " -l 2 | column -t -s "$sep"
