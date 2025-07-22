@@ -7,7 +7,7 @@ set -eo pipefail
 # constants
 #
 
-LIB_DIR="/usr/lib/zfs/initcpio"
+: ${LIB_DIR="/usr/lib/zfs/initcpio"}
 STATE_DIR="/run/zfs/initcpio"
 STATE_FILE="$STATE_DIR/state"
 

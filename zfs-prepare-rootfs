@@ -4,7 +4,7 @@
 set -eo pipefail
 
 SCRIPT_NAME="zfs-prepare-rootfs"
-LIB_DIR="/usr/lib/zfs/initcpio"
+: ${LIB_DIR="/usr/lib/zfs/initcpio"}
 # shellcheck source=zfs-functions
 . "$LIB_DIR/zfs-functions"
 
