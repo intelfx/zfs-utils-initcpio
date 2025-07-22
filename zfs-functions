@@ -118,4 +118,70 @@ load_vars() {
 	done <"$STATE_FILE"
 }
 
+# Normalization dance, unified
+#
+# Case 1 (replace prefix):
+# mountpoint=/            mountbase=/        relpoint=      sysrootpoint=/sysroot
+# mountpoint=/usr         mountbase=/        relpoint=/usr  sysrootpoint=/sysroot/usr
+# mountpoint=/target      mountbase=/target  relpoint=      sysrootpoint=/sysroot
+# mountpoint=/target/usr  mountbase=/target  relpoint=/usr  sysrootpoint=/sysroot/usr
+#
+# Case 2 (strip prefix):
+# mountpoint=/            mountbase=/        relpoint=/
+# mountpoint=/usr         mountbase=/        relpoint=/usr
+# mountpoint=/target      mountbase=/target  relpoint=/
+# mountpoint=/target/usr  mountbase=/target  relpoint=/usr
+#
+# This function does not really have well-defined semantics in terms of paths
+# (i.e., it is not a "relativize path" operation, and it does not always
+# return a well-formed relative path). Instead, this function simply computes
+# `relpoint` per the table above.
+#
+# $1: `mountpoint`
+# $2: `mountbase`
+# $3: desired result when `mountpoint` == `mountbase`
+#     (either "" or "/" makes sense, for case 1 and case 2 respectively)
+# Assumes that input paths are cleaned up (no extraneous trailing slashes).
+# Outputs `relpoint`.
+# Returns non-zero if `mountpoint` is not under `mountbase`.
+_mountpoint_strip_prefix() {
+	local mountpoint="$1" mountbase="$2" empty="$3" relpoint
+	# unfortunately, busybox ash [[ expansion rules are braindead
+	# and it cannot be used for anything where rhs consists of a
+	# literal part and a pattern part, e.g.:
+	#   if ! [[ "$mountpoint" == "$mountbase" || "$mountpoint" == "${mountbase%/}"/* ]]; then
+	# anyway, normalization dance
+	case "$mountpoint" in
+	"$mountbase")
+		relpoint="$empty" ;;
+	"${mountbase%/}"/*)
+		relpoint="${mountpoint#"${mountbase%/}"}" ;;
+	*)
+		return 1 ;;
+	esac
+
+	printf "%s\n" "$relpoint"
+}
+
+# Rebase a path (strip an existing prefix and append to a new one).
+# $1: source path
+# $2: old path prefix to strip
+# $3: new path prefix
+# - $3 == "/": if $1 == $2, produce "/"
+# - $3 == "": if $1 == $2, produce an empty path
+# - $3 is any other path: use $3 as the new path prefix
+# Outputs $1 with $2 stripped and $3 prepended.
+# Returns non-zero if $1 is not under $2.
+mountpoint_rebase() {
+	local mountpoint="$1" mountbase="$2" newbase="$3" stripped
+
+	case "$newbase" in
+	/) _mountpoint_strip_prefix "$mountpoint" "$mountbase" "/" ;;
+	# the "") is equivalent to *), but we spell it out for clarity
+	"") _mountpoint_strip_prefix "$mountpoint" "$mountbase" "" ;;
+	*) stripped="$(_mountpoint_strip_prefix "$mountpoint" "$mountbase" "")" \
+		&& printf "%s%s\n" "$newbase" "$stripped" ;;
+	esac
+}
+
 # vim: ft=bash ts=8 noet:

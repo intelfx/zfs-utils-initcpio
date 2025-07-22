@@ -1,0 +1,120 @@
+#!/usr/bin/busybox sh
+# shellcheck shell=busybox disable=SC3001,SC3003
+
+set -eo pipefail
+
+SCRIPT_NAME="zfs-prepare-multiboot"
+LIB_DIR="$PWD"
+# shellcheck source=zfs-functions
+. "$LIB_DIR/zfs-functions"
+
+N_DONE=0
+N_OK=0
+N_FAIL=0
+
+_describe() {
+	local full
+	while [[ "${1+set}" ]]; do
+		case "$1" in
+		--full) full=1 ;;
+		*) break ;;
+		esac
+		shift
+	done
+	local rc="$1" stdout="$2"
+
+	if [[ "$rc" != 0 ]] && [[ "$stdout" ]] || [[ "$full" ]]; then
+		echo "\"$stdout\"$sep(rc=$rc)"
+	elif [[ "$rc" != 0 ]] && [[ -z "$stdout" ]]; then
+		echo "$sep(rc=$rc)"
+	else
+		echo "\"$stdout\""
+	fi
+}
+
+_escape() {
+	local out
+	local arg="$1"
+	shift
+
+	out="'$arg'"
+	for arg; do
+		out="$out '$arg'"
+	done
+	printf "%s\n" "$out"
+}
+
+sep=$'\t'
+
+expect_one() {
+	local expected_rc="$1"
+	local expected_stdout="$2"
+	shift 2
+
+	local rc stdout
+	stdout="$("$@")" && rc=0 || rc=$?
+
+	if [[ -z "$expected_rc" ]] && [[ -z "$expected_stdout" ]]; then
+		echo "DONE: $(_escape "$@")$sep$(_describe "$rc" "$stdout")"
+		N_DONE=$((N_DONE+1))
+
+	elif [[ "$rc" == "$expected_rc" ]] && [[ "$stdout" == "$expected_stdout" ]]; then
+		echo "  OK: $(_escape "$@")$sep$(_describe "$rc" "$stdout")"
+		N_OK=$((N_OK+1))
+
+	else
+		echo "FAIL: $(_escape "$@")$sep…"
+		echo "      * expected$sep$(_describe --full "$expected_rc" "$expected_stdout")"
+		echo "      *   actual$sep$(_describe --full "$rc" "$stdout")"
+		N_FAIL=$((N_FAIL+1))
+	fi
+}
+
+report() {
+	if [[ "$N_DONE" != 0 ]]; then
+		echo "Done (no expectations): $N_DONE"
+	fi
+	echo "OK: $N_OK"
+	if [[ "$N_FAIL" != 0 ]]; then
+		echo "FAIL: $N_FAIL"
+		exit 1
+	fi
+	exit 0
+}
+
+{
+
+expect_one "0" "/bar" \
+	mountpoint_rebase     /foo/bar  /foo  /
+expect_one "0" "/" \
+	mountpoint_rebase     /foo      /foo  /
+expect_one "1" "" \
+	mountpoint_rebase     /bar      /foo  /
+expect_one "0" "/bar" \
+	mountpoint_rebase     /bar      /     /
+expect_one "0" "/" \
+	mountpoint_rebase     /         /     /
+
+expect_one "0" "/bar" \
+	mountpoint_rebase     /foo/bar  /foo  ""
+expect_one "0" "" \
+	mountpoint_rebase     /foo      /foo  ""
+expect_one "1" "" \
+	mountpoint_rebase     /bar      /foo  ""
+expect_one "0" "/bar" \
+	mountpoint_rebase     /bar      /     ""
+expect_one "0" "" \
+	mountpoint_rebase     /         /     ""
+
+expect_one "0" "/foonew/bar" \
+	mountpoint_rebase     /foo/bar  /foo  /foonew
+expect_one "0" "/foonew" \
+	mountpoint_rebase     /foo      /foo  /foonew
+expect_one "1" "" \
+	mountpoint_rebase     /bar      /foo  /foonew
+expect_one "0" "/foonew/bar" \
+	mountpoint_rebase     /bar      /     /foonew
+expect_one "0" "/foonew" \
+	mountpoint_rebase     /         /     /foonew
+
+} | column -t -s "$sep" -o " ⇒ " -l 2 | column -t -s "$sep"
