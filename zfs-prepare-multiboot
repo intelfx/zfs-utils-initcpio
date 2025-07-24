@@ -193,3 +193,9 @@ n="$(echo "$NOT_MOUNTED_BOOTFS" | wc -w)"
 if [[ "$n" != 0 ]]; then
 	log "Will ignore $n other OS roots: ${NOT_MOUNTED_BOOTFS// /, }"
 fi
+
+export ZFS_ROOT_MULTIBOOT=1
+dump_vars
+
+log "done"
+exit 0
