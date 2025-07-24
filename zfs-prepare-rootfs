@@ -62,8 +62,18 @@ dump_vars
 
 "$LIB_DIR/zfs-prepare-multiboot"
 
+load_vars
+
+if [[ "$ZFS_ROOT_MULTIBOOT" ]]; then
+	log "multiboot configuration found in \"$ZFS_ROOT_POOL\", reloading" 5
+	want_reload=1
+fi
 if zfs list -Ho name -d1 "$ZFS_ROOT_DATASET" | grep -q -v -Fx "$ZFS_ROOT_DATASET"; then
 	log "nested datasets found under \"$ZFS_ROOT_DATASET\", reloading" 5
+	want_reload=1
+fi
+
+if [[ "$want_reload" ]]; then
 	systemctl daemon-reload
 
 	# XXX: initrd-fs.target is enqueued before we have a chance to parse the pool,
