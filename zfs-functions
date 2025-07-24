@@ -109,6 +109,10 @@ dump_vars() {
 	# XXX: multi-line variables wtll break this
 	vars="$(set | grep -Eo '^ZFS_ROOT_[^=]*')"
 
+	for k in $vars; do
+		export "${k?}"
+	done
+
 	install -dm700 "${STATE_FILE%/*}"
 	local IFS=$'\n'
 	for k in $vars; do
