@@ -44,7 +44,10 @@ BEGIN {
 	if (!n_items)
 		items[n_items++] = $1
 	items[n_items++] = $3
-	items[n_items++] = $4
+	# cleanup various property sources
+	items[n_items++] = ($4 == "received") ? "local" \
+	                 : ($4 ~ /^inherited /) ? "inherited" \
+	                 : $4
 }
 
 END {
