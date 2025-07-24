@@ -60,6 +60,9 @@ build() {
 		stdbuf \
 		/usr/lib/coreutils/libstdbuf.so \
 
+	# debugging scripts
+	add_file /usr/lib/zfs/initcpio/zfs-listp /usr/bin/
+
 	# ZFS-relevant configuration files
 	local copied_files=(
 		# /etc/zfs/zpool.cache

@@ -1,0 +1,23 @@
+#!/usr/bin/busybox sh
+# shellcheck shell=busybox disable=SC3003
+
+set -eo pipefail
+
+ARGS=""
+COLUMNS=""
+
+while [[ "${1+set}" ]]; do
+	case "$1" in
+	-o) COLUMNS="${COLUMNS:+"$COLUMNS,"}$2"; shift 2;;
+	-o=*) COLUMNS="${COLUMNS:+"$COLUMNS,"}${1#-o=}"; shift 1;;
+	-o*) COLUMNS="${COLUMNS:+"$COLUMNS,"}${1#-o}"; shift 1;;
+	*) ARGS="${ARGS:+"$ARGS "}$1"; shift 1;;
+	esac
+done
+
+COLUMNS_LEADING="name,recordsize,lused,used,lrefer,refer,avail"
+COLUMNS_TRAILING="canmount,dev.sd-zfs:machine-id,dev.sd-zfs:last-alt,mountpoint"
+
+COLUMNS="${COLUMNS_LEADING},${COLUMNS:+"$COLUMNS,"}${COLUMNS_TRAILING}"
+
+exec zfs list -t filesystem -o "$COLUMNS" $ARGS
