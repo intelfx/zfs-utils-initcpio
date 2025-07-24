@@ -45,11 +45,13 @@ if [[ "$BOOT_MACHINE_ID" == "-" ]]; then
 fi
 
 zfs_prop_set() {
-	local propname="$1" propvalue="$2"
-	if [[ "$propname" == mountpoint ]] && [[ "$propvalue" == "$mountpoint" ]]; then
-		dbg "$name: [$propname] no-change"
-	elif [[ "$propname" == mountpoint ]]; then
-		dbg "$name: [$propname] update $propvalue from $mountpoint"
+	local propname="$1" propvalue="$2" propold="$3"
+
+	if [[ "$propold" ]] && [[ "$propvalue" == "$propold" ]]; then
+		dbg "$name: [$propname] no-change ($propvalue)"
+		return
+	elif [[ "$propold" ]]; then
+		dbg "$name: [$propname] update $propvalue from $propold"
 	else
 		dbg "$name: [$propname] set $propvalue"
 	fi
@@ -58,8 +60,18 @@ zfs_prop_set() {
 }
 
 zfs_prop_clear() {
-	local propname="$1"
-	dbg "$name: [$propname] clear"
+	local propname="$1" propsource="$2"
+
+	if [[ "$propsource" == "-" ]]; then
+		dbg "$name: [$propname] no-change (clear)"
+		return
+	elif [[ "$propsource" == "inherited" ]]; then
+		dbg "$name: [$propname] no-change (inherited)"
+		return
+	else
+		dbg "$name: [$propname] clear"
+	fi
+
 	dry_run zfs inherit -S "$propname" "$name"
 }
 
@@ -142,15 +154,15 @@ do
 	esac
 
 	if [[ "$target_canmount" ]] && [[ "$canmount" != off ]]; then
-		zfs_prop_set canmount "$target_canmount"
+		zfs_prop_set canmount "$target_canmount" "$canmount"
 	fi
 
 	if [[ "$target_alt" ]] && [[ "$mountpoint_s" == local ]]; then
 		target_mountpoint="$(mountpoint_rebase_if "$mountpoint" "$last_alt" "$target_alt")"
-		zfs_prop_set mountpoint "$target_mountpoint"
-		zfs_prop_set "$PROP_LAST_ALT" "$target_alt"
+		zfs_prop_set mountpoint "$target_mountpoint" "$mountpoint"
+		zfs_prop_set "$PROP_LAST_ALT" "$target_alt" "$last_alt"
 	else
-		zfs_prop_clear "$PROP_LAST_ALT"
+		zfs_prop_clear "$PROP_LAST_ALT" "$last_alt_s"
 	fi
 
 	if [[ ! "$target_canmount" ]] && [[ ! "$target_mountpoint" ]]; then
