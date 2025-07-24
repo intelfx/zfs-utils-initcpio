@@ -54,7 +54,7 @@ zfs_prop_set() {
 		dbg "$name: [$propname] set $propvalue"
 	fi
 
-	dry_run zfs set "$propname=$propvalue" "$name"
+	dry_run zfs set -u "$propname=$propvalue" "$name"
 }
 
 zfs_prop_clear() {
