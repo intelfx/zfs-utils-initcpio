@@ -96,7 +96,7 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	Documentation=man:zpool(8)
 	DefaultDependencies=no
 	IgnoreOnIsolate=yes
-	Requires=systemd-udev-settle.service
+	Wants=systemd-udev-settle.service
 	After=systemd-udev-settle.service
 	After=cryptsetup.target
 	After=multipathd.service
