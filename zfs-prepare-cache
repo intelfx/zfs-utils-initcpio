@@ -1,0 +1,84 @@
+#!/usr/bin/busybox sh
+# shellcheck shell=busybox disable=SC3001,SC3003
+
+set -eo pipefail
+
+SCRIPT_NAME="zfs-prepare-cache"
+: ${LIB_DIR="/usr/lib/zfs/initcpio"}
+# shellcheck source=zfs-functions
+. "$LIB_DIR/zfs-functions"
+
+
+#
+# definitions
+#
+
+ZFS_SYSROOT="/sysroot"
+ZFS_CACHE_DIR="/etc/zfs/zfs-list.cache"
+# XXX: keep this in sync with /usr/lib/zfs/zed.d/history_event-zfs-list-cacher.sh
+ZFS_CACHE_PROPS="name,mountpoint,canmount,atime,relatime,devices,exec\
+,readonly,setuid,nbmand,encroot,keylocation\
+,org.openzfs.systemd:requires,org.openzfs.systemd:requires-mounts-for\
+,org.openzfs.systemd:before,org.openzfs.systemd:after\
+,org.openzfs.systemd:wanted-by,org.openzfs.systemd:required-by\
+,org.openzfs.systemd:nofail,org.openzfs.systemd:ignore"
+
+
+#
+# main
+#
+
+setup_debug
+
+# The state file is loaded via systemd
+if [[ ${ZFS_ROOT_MODE+set} ]]; then
+	:
+# if vars_present; then
+# 	load_vars
+# else
+# 	parse_cmdline
+else
+	die "must be invoked with state variables in the environment"
+fi
+
+[[ ${ZFS_ROOT_POOL+set} ]] || die "internal: \$ZFS_ROOT_POOL not set"
+[[ ${ZFS_ROOT_DATASET+set} ]] || die "internal: \$ZFS_ROOT_DATASET not set"
+
+make_cache() {
+	local pool="$1"
+	local cache_file="$ZFS_SYSROOT/$ZFS_CACHE_DIR/$pool"
+	local cache_file_tmp="$STATE_DIR/$pool.tmp"
+
+	if ! [[ -w "$cache_file" ]]; then
+		log "error: zfs-list cache file \"$cache_file\" does not exist or is not writable" 3
+		return 1
+	fi
+
+	# Sort the output so that it is stable
+	# (mkinitcpio busybox has no `sort -o`)
+	zfs list -H -t filesystem -o "$ZFS_CACHE_PROPS" -r "$pool" \
+		| sort \
+		>"$cache_file_tmp"
+
+	# Don't modify the file if it hasn't changed
+	# (mkinitcpio busybox has no `diff` or `cmp`)
+	if ! [[ "$(md5sum -b <"$cache_file_tmp")" == "$(md5sum -b <"$cache_file")" ]]; then
+		dbg "updating zfs-list cache file \"$cache_file\" (was $(wc -l <"$cache_file"), now $(wc -l <"$cache_file_tmp") entries)"
+		cat "$cache_file_tmp" >"$cache_file"
+	else
+		dbg "not updating zfs-list cache file \"$cache_file\""
+	fi
+	rm -f "$cache_file_tmp"
+}
+
+if ! mountpoint -q "$ZFS_SYSROOT"; then
+	log "error: sysroot directory \"$ZFS_SYSROOT\" is not a mountpoint, exiting" 3
+	exit 1
+fi
+
+if ! [[ -d "$ZFS_SYSROOT$ZFS_CACHE_DIR" ]]; then
+	log "error: directory \"$ZFS_SYSROOT$ZFS_CACHE_DIR\" does not exist in sysroot, exiting"
+	exit 1
+fi
+
+make_cache "$ZFS_ROOT_POOL"

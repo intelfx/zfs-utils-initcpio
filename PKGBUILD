@@ -24,6 +24,7 @@ source=(
 	zfs-parse-zfsget
 	zfs-prepare-rootfs
 	zfs-prepare-multiboot
+	zfs-prepare-cache
 	zfs-root-generator
 	zfs-listp
 	sd-zfs.initcpio.install
@@ -32,6 +33,7 @@ source=(
 	zfs.mkinitcpio-generate-shutdown-ramfs.conf
 )
 sha256sums=('SKIP'
+            'SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
