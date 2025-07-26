@@ -22,6 +22,7 @@ source=(
 	zfs-functions
 	zfs-parse-cmdline
 	zfs-prepare-rootfs
+	zfs-prepare-cache
 	zfs-root-generator
 	zfs-listp
 	sd-zfs.initcpio.install
@@ -30,6 +31,7 @@ source=(
 	zfs.mkinitcpio-generate-shutdown-ramfs.conf
 )
 sha256sums=('SKIP'
+            'SKIP'
             'SKIP'
             'SKIP'
             'SKIP'
@@ -47,7 +49,7 @@ pkgver() {
 package() {
 	install -Dvm644 "${srcdir}"/zfs-functions \
 		-t "${pkgdir}/usr/lib/zfs/initcpio"
-	install -Dvm755 "${srcdir}"/{zfs-parse-cmdline,zfs-prepare-rootfs,zfs-root-generator} \
+	install -Dvm755 "${srcdir}"/{zfs-parse-cmdline,zfs-prepare-*,zfs-root-generator} \
 		-t "${pkgdir}/usr/lib/zfs/initcpio"
 	install -Dvm644 "${srcdir}/sd-zfs.initcpio.install" \
 		"${pkgdir}/usr/lib/initcpio/install/sd-zfs"
