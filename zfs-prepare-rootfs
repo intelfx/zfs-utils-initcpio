@@ -20,8 +20,10 @@ if [[ ${ZFS_ROOT_MODE+set} ]]; then
 	:
 # if vars_present; then
 # 	load_vars
+# else
+# 	parse_cmdline
 else
-	parse_cmdline
+	die "must be invoked with state variables in the environment"
 fi
 
 [[ ${ZFS_ROOT_MODE+set} ]] || die "internal: \$ZFS_ROOT_MODE not set"
