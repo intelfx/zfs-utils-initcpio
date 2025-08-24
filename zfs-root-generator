@@ -297,8 +297,8 @@ esac
 write_common_units
 write_import_unit
 
-# if the designated root dataset exists
-# (/proc/...: check if the pool is imported without triggering zfs.ko auto-load)
+# check if the designated root pool + dataset is _already_ present
+# (proc dance is to avoid triggering zfs.ko auto-load in a synchronous context)
 if [[ $ZFS_ROOT_POOL && $ZFS_ROOT_DATASET ]] \
 && [[ -e "/proc/spl/kstat/zfs/$ZFS_ROOT_POOL/state" ]] \
 && zfs list -Ho name "$ZFS_ROOT_DATASET" &>/dev/null; then
