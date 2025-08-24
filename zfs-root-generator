@@ -127,6 +127,10 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	# to order us specifically after the units it creates.
 	After=systemd-cryptsetup@root.service
 
+	# HACK: we are not ordered after local-fs-pre.target, so ensure that
+	# we do not import any pools simultaneously with hibernation resume
+	After=systemd-hibernate-resume.service
+
 	[Service]
 	Type=oneshot
 	RemainAfterExit=yes
