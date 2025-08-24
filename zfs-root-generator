@@ -120,7 +120,6 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
 	After=cryptsetup.target
 	After=multipathd.service
 	Before=zfs-initrd-import.target
-	ConditionPathIsDirectory=/sys/module/zfs
 
 	# HACK: systemd-gpt-auto-generator is completely crazy and I cannot wrap my head
 	# around the dependency chain it creates, so add a bunch of extra dependencies
