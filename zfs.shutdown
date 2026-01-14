@@ -11,6 +11,10 @@ if ! test -e /etc/initrd-release \
 fi
 
 set -x
-zpool export -a
+
+# We don't have an `umount` in the exitrd (mkinitcpio's busybox doesn't have it)
+#umount -R /oldroot
+
+zpool export -af
 
 # vim: ft=sh ts=8 noet:
