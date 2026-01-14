@@ -1,5 +1,15 @@
 #!/bin/sh
 
+SCRIPT_PATH=$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd -P)/$(basename -- "$0")
+
+# Do not bother if we have an "exitrd" (shutdown ramfs) and we are not in it yet.
+# (see zfs.mkinitcpio-generate-shutdown-ramfs.tmpfiles and sd-zfs-shutdown.initcpio.install)
+if ! test -e /etc/initrd-release \
+&& test -e /run/initramfs/shutdown \
+&& test -e /run/initramfs/"$SCRIPT_PATH"; then
+	exit 0
+fi
+
 set -x
 zpool export -a
 
