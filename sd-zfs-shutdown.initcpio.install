@@ -4,8 +4,7 @@ build() {
 	local applet
 	# add parts of base hook:
 	# - busybox with applet symlinks
-	# - kmod with applet symlinks
-	# - blkid
+	# - umount
 	add_binary /usr/lib/initcpio/busybox /usr/bin/busybox
 	for applet in $(/usr/lib/initcpio/busybox --list); do
 		# do not add busybox symlinks over potentially real binaries
@@ -13,6 +12,8 @@ build() {
 		[[ -e "$BUILDROOT/usr/bin/$applet" ]] || \
 			add_symlink "/usr/bin/$applet" busybox
 	done
+	# `umount -R`
+	add_binary umount
 
 	# ZFS binaries
 	map add_binary \
