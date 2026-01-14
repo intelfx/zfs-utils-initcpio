@@ -14,8 +14,9 @@ fi
 
 set -x
 
-# We don't have an `umount` in the exitrd (mkinitcpio's busybox doesn't have it)
-#umount -R /oldroot
+if mountpoint -q /oldroot; then
+	umount -R /oldroot
+fi
 
 zpool export -af
 
