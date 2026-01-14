@@ -1,0 +1,4 @@
+# this plugs into the config used by mkinitcpio-generate-shutdown-ramfs.service
+# (cf. https://gitlab.archlinux.org/archlinux/mkinitcpio/mkinitcpio/-/commit/321901617a277bf0b05a7337e7e6e6d4fd60ab18)
+
+w+ /run/initramfs/mkinitcpio-shutdown.conf - - - - HOOKS+=(sd-zfs-shutdown)\n

@@ -28,7 +28,7 @@ source=(
 	sd-zfs.initcpio.install
 	sd-zfs-shutdown.initcpio.install
 	zfs.shutdown
-	zfs.mkinitcpio-generate-shutdown-ramfs.conf
+	zfs.mkinitcpio-generate-shutdown-ramfs.tmpfiles
 )
 sha256sums=('SKIP'
             'SKIP'
@@ -60,9 +60,8 @@ package() {
 	install -Dvm755 "${srcdir}"/zfs-listp \
 		-t "${pkgdir}/usr/lib/zfs/initcpio"
 
-	# TODO: rework this once mkinitcpio!373 and/or mkinitcpio!389 lands
-	install -Dvm644 "${srcdir}/zfs.mkinitcpio-generate-shutdown-ramfs.conf" \
-		"${pkgdir}/usr/lib/systemd/system/mkinitcpio-generate-shutdown-ramfs.service.d/zfs.conf"
+	install -Dvm644 "${srcdir}/zfs.mkinitcpio-generate-shutdown-ramfs.tmpfiles" \
+		"${pkgdir}/usr/lib/tmpfiles.d/zfs-mkinitcpio-shutdown.conf"
 }
 
 # vim: ft=PKGBUILD ts=8 noet:
