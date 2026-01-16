@@ -1,5 +1,7 @@
 #!/bin/sh
 
+exec >/dev/console 2>&1
+
 SCRIPT_PATH=$(CDPATH="" cd -- "$(dirname -- "$0")" && pwd -P)/$(basename -- "$0")
 
 # Do not bother if we have an "exitrd" (shutdown ramfs) and we are not in it yet.
