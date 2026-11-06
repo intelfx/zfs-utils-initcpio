@@ -103,7 +103,7 @@ ExecStart=/usr/bin/zpool import -N -o cachefile=none -a
 " ;;
 
 		pool|dataset) import_mode=requires; import_cmds="\
-ExecStart=/usr/bin/zpool import -N -o cachefile=none \${ZFS_ROOT_POOL}
+ExecStart=/usr/bin/zpool import -N -o cachefile=none -f \${ZFS_ROOT_POOL}
 " ;;
 
 		*) die "invalid \$ZFS_ROOT_MODE=\"$ZFS_ROOT_MODE\"" ;;
